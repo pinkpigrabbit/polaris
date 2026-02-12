@@ -1,2 +1,2 @@
 # polaris
-accounting system
+buyside accounting system

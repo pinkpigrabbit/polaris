@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+backend/.venv/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+
+# Type checking / linting
+.mypy_cache/
+.pytype/
+.ruff_cache/
+.cache/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+
+# Environment files (keep examples)
+.env
+.env.*
+!.env.example
+!backend/.env.example
+
+# Local databases / state
+*.sqlite
+*.sqlite3
+*.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+desktop.ini
+
+.idea/
+
+# VS Code (keep project-recommended settings)
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json

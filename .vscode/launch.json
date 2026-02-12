@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Pytest: two portfolios IBOR/ABOR",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/backend/.venv/Scripts/python.exe",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "-s",
+        "backend/tests/test_two_portfolios_ibor_abor_flow.py",
+        "-k",
+        "test_two_portfolios_aapl_buy_flow_to_ibor_and_abor"
+      ],
+      "env": {
+        "POLARIS_DATABASE_URL": "postgresql+psycopg://polaris:polaris@127.0.0.1:5433/polaris",
+        "POLARIS_REDIS_URL": "redis://localhost:6380/0",
+        "POLARIS_TEMPORAL_ADDRESS": "localhost:7233",
+        "POLARIS_TEMPORAL_NAMESPACE": "default",
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  ]
+}

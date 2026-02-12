@@ -1,0 +1,40 @@
+services:
+  polaris-postgresql:
+    image: postgres:16
+    container_name: polaris-postgresql
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: polaris
+      POSTGRES_USER: polaris
+      POSTGRES_DB: polaris
+    networks:
+      - polaris-network
+    volumes:
+      - polaris-postgresql-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U polaris -d polaris"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+
+  polaris-redis:
+    image: redis:7
+    container_name: polaris-redis
+    ports:
+      - "6380:6379"
+    networks:
+      - polaris-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 10s
+
+networks:
+  polaris-network:
+
+volumes:
+  polaris-postgresql-data:
