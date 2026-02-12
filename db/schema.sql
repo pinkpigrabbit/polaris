@@ -277,7 +277,7 @@ DROP FUNCTION IF EXISTS validate_allocation_sums();
 
 -- 아이템포턴시/중복방지(API 재시도, Temporal activity 재시도 대비)
 CREATE TABLE IF NOT EXISTS idempotency_record (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- PK
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- PK(정렬 가능한 순번 ID)
   scope TEXT NOT NULL, -- 키 스코프(예: api:create_staging)
   key TEXT NOT NULL, -- 아이템포턴시 키
   request_hash TEXT, -- 요청 바디 해시(선택)
@@ -285,6 +285,24 @@ CREATE TABLE IF NOT EXISTS idempotency_record (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 생성시각
   UNIQUE (scope, key) -- (scope,key) 유니크
 );
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = current_schema()
+      AND table_name = 'idempotency_record'
+      AND column_name = 'id'
+      AND udt_name = 'uuid'
+  ) THEN
+    ALTER TABLE idempotency_record DROP CONSTRAINT IF EXISTS idempotency_record_pkey;
+    ALTER TABLE idempotency_record RENAME COLUMN id TO id_uuid_legacy;
+    ALTER TABLE idempotency_record ADD COLUMN id BIGINT GENERATED ALWAYS AS IDENTITY;
+    ALTER TABLE idempotency_record ADD PRIMARY KEY (id);
+    ALTER TABLE idempotency_record DROP COLUMN id_uuid_legacy;
+  END IF;
+END$$;
 
 -- Pending Trade(수정 가능) + 변경 이력
 CREATE TABLE IF NOT EXISTS pending_trade (

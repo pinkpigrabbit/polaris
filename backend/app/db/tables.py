@@ -71,7 +71,7 @@ portfolio = Table(
 idempotency_record = Table(
     "idempotency_record",
     metadata,
-    Column("id", UUID(as_uuid=True), primary_key=True, server_default=text("gen_random_uuid()")),
+    Column("id", BigInteger, primary_key=True),
     Column("scope", Text, nullable=False),
     Column("key", Text, nullable=False),
     Column("request_hash", Text),
