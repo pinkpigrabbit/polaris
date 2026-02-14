@@ -148,12 +148,12 @@ async def seed_master_data(db_engine, db_has_schema) -> dict:
         instrument_row = await conn.execute(
             text(
                 """
-                INSERT INTO instrument(instrument_type, symbol, name, currency, lifecycle, created_at, updated_at)
-                VALUES ('stock', :symbol, 'Test Instrument', 'USD', 'active', now(), now())
+                INSERT INTO instrument(instrument_type, security_id, name, currency, lifecycle, created_at, updated_at)
+                VALUES ('stock', :security_id, 'Test Instrument', 'USD', 'active', now(), now())
                 RETURNING id
                 """
             ),
-            {"symbol": f"TEST{token}"},
+            {"security_id": f"TEST{token}"},
         )
         instrument_id = int(instrument_row.scalar_one())
 

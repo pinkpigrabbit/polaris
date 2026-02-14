@@ -413,12 +413,12 @@ async def abor_nav_compute_activity(portfolio_id: str, asof_date: str) -> dict:
 
 
 async def _get_or_create_cash_instrument_id(session, *, currency_code: str) -> int:
-    symbol = f"CASH_{currency_code}"
+    security_id = f"CASH_{currency_code}"
     row = (
         await session.execute(
             select(instrument.c.id).where(
                 instrument.c.instrument_type == "cash",
-                instrument.c.symbol == symbol,
+                instrument.c.security_id == security_id,
             )
         )
     ).first()
@@ -430,7 +430,7 @@ async def _get_or_create_cash_instrument_id(session, *, currency_code: str) -> i
         instrument.insert()
         .values(
             instrument_type="cash",
-            symbol=symbol,
+            security_id=security_id,
             name=f"Cash {currency_code}",
             currency=currency_code,
             lifecycle="active",

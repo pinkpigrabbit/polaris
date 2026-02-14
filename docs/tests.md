@@ -89,14 +89,14 @@
 검증 내용:
 
 - CA 이벤트 생성 + Temporal 처리.
-- `cash_dividend`: 현금 상품 포지션 증가(`instrument_type='cash'`, `symbol='CASH_USD'`).
+- `cash_dividend`: 현금 상품 포지션 증가(`instrument_type='cash'`, `security_id='CASH_USD'`).
 - 포트폴리오 단위 중복 방지는 `ca_effect` 유니크 제약으로 보장.
 
 ## 테스트 7: Instrument 확장 API (`backend/tests/test_instrument_api.py`)
 
 목적:
 
-- instrument 단일 테이블 기반에서 확장된 `instrument_master`, `instrument_identifier`, subtype 테이블이 API와 함께 정상 동작하는지 검증한다.
+- `instrument` 단일 테이블(`security_id`, `full_name`, `short_name`, `security_type` 포함)과 `instrument_identifier`, subtype 테이블이 API와 함께 정상 동작하는지 검증한다.
 
 검증 내용:
 

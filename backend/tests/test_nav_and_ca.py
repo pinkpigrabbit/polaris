@@ -175,7 +175,7 @@ async def test_ca_cash_dividend_pipeline(fastapi_client, seed_master_data, db_en
                 text(
                     """
                     SELECT id FROM instrument
-                    WHERE instrument_type = 'cash' AND symbol = 'CASH_USD'
+                    WHERE instrument_type = 'cash' AND security_id = 'CASH_USD'
                     """
                 )
             )

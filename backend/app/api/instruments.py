@@ -16,7 +16,6 @@ from ..db.tables import (
     instrument_futures,
     instrument_fx,
     instrument_identifier,
-    instrument_master,
     instrument_swap,
     instrument_type_id_rule,
     security_id_type,
@@ -74,23 +73,21 @@ async def _build_response(session: AsyncSession, *, instrument_id: int) -> Instr
             select(
                 instrument.c.id,
                 instrument.c.instrument_type,
-                instrument.c.symbol,
+                instrument.c.security_id,
                 instrument.c.currency,
-                instrument_master.c.full_name,
-                instrument_master.c.short_name,
-                instrument_master.c.security_type,
-                instrument_master.c.security_id,
+                instrument.c.full_name,
+                instrument.c.short_name,
+                instrument.c.security_type,
                 instrument_type_id_rule.c.default_id_type_code,
                 security_type_rule.c.default_settlement_days,
             )
-            .join(instrument_master, instrument_master.c.instrument_id == instrument.c.id)
             .join(
                 instrument_type_id_rule,
                 instrument_type_id_rule.c.instrument_type == instrument.c.instrument_type,
             )
             .join(
                 security_type_rule,
-                (security_type_rule.c.security_type == instrument_master.c.security_type)
+                (security_type_rule.c.security_type == instrument.c.security_type)
                 & (security_type_rule.c.currency == instrument.c.currency),
             )
             .where(instrument.c.id == instrument_id)
@@ -114,14 +111,13 @@ async def _build_response(session: AsyncSession, *, instrument_id: int) -> Instr
     payload: dict[str, Any] = {
         "instrument_id": str(base[0]),
         "instrument_type": str(base[1]),
-        "symbol": base[2],
         "currency": str(base[3]),
         "full_name": str(base[4]),
         "short_name": str(base[5]),
         "security_type": str(base[6]),
-        "security_id": str(base[7]),
-        "default_id_type_code": str(base[8]),
-        "default_settlement_days": int(base[9]),
+        "security_id": str(base[2]),
+        "default_id_type_code": str(base[7]),
+        "default_settlement_days": int(base[8]),
         "identifiers": [
             {
                 "id_type_code": str(r[0]),
@@ -266,13 +262,17 @@ async def create_instrument(
     if existing_id_types != seen_types:
         raise HTTPException(status_code=400, detail="unknown_identifier_type")
 
+    security_id = body.security_id.strip() if body.security_id else default_id_value
     now = datetime.now(tz=timezone.utc)
     instrument_insert = await session.execute(
         instrument.insert()
         .values(
             instrument_type=instrument_type,
-            symbol=body.symbol,
+            security_id=security_id,
             name=body.short_name,
+            full_name=body.full_name.strip(),
+            short_name=body.short_name.strip(),
+            security_type=security_type,
             currency=currency,
             lifecycle="active",
             created_at=now,
@@ -281,19 +281,6 @@ async def create_instrument(
         .returning(instrument.c.id)
     )
     instrument_id = int(instrument_insert.scalar_one())
-
-    security_id = body.security_id.strip() if body.security_id else default_id_value
-    await session.execute(
-        instrument_master.insert().values(
-            instrument_id=instrument_id,
-            security_id=security_id,
-            full_name=body.full_name.strip(),
-            short_name=body.short_name.strip(),
-            security_type=security_type,
-            created_at=now,
-            updated_at=now,
-        )
-    )
 
     for id_type_code, id_value, is_primary in normalized_identifiers:
         await session.execute(
@@ -374,10 +361,10 @@ async def update_security_id(
 ):
     iid = _parse_numeric_id(instrument_id, field="instrument_id")
     updated = await session.execute(
-        update(instrument_master)
-        .where(instrument_master.c.instrument_id == iid)
+        update(instrument)
+        .where(instrument.c.id == iid)
         .values(security_id=body.security_id.strip(), updated_at=datetime.now(tz=timezone.utc))
-        .returning(instrument_master.c.instrument_id)
+        .returning(instrument.c.id)
     )
     if not updated.first():
         raise HTTPException(status_code=404, detail="instrument_not_found")

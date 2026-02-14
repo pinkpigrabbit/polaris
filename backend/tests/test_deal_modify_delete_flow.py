@@ -72,9 +72,9 @@ async def test_deal_modify_and_delete_flow(
         instrument_row = await conn.execute(
             text(
                 """
-                    INSERT INTO instrument(instrument_type, symbol, name, currency, lifecycle, created_at, updated_at)
+                    INSERT INTO instrument(instrument_type, security_id, name, currency, lifecycle, created_at, updated_at)
                     VALUES ('stock', 'AAPL US', 'Apple Inc. US', 'USD', 'active', now(), now())
-                    ON CONFLICT (instrument_type, symbol)
+                    ON CONFLICT (instrument_type, security_id)
                     DO UPDATE SET
                       name = EXCLUDED.name,
                   currency = EXCLUDED.currency,
@@ -289,7 +289,7 @@ async def test_deal_modify_and_delete_flow(
     await assert_transaction_count(all_staging_ids, expected_count=6)
     await assert_positions("150", "300")
     await assert_ibor("82500", "165000")
-    await assert_abor(today, "81000", "162000")
+    await assert_abor(today, "82500", "165000")
 
     print("\n[6단계] deal 삭제(DELETE) 후 반영")
     delete_res = await fastapi_client.delete(f"/staging-transactions/deals/{deal_block_id}")

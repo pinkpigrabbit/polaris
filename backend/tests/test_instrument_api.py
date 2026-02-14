@@ -14,7 +14,14 @@ async def _ensure_instrument_extension_ready(db_engine) -> None:
                 text(
                     """
                     SELECT
-                      to_regclass('public.instrument_master') IS NOT NULL
+                      to_regclass('public.instrument') IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1
+                        FROM information_schema.columns
+                        WHERE table_schema = 'public'
+                          AND table_name = 'instrument'
+                          AND column_name = 'security_id'
+                      )
                       AND to_regclass('public.instrument_identifier') IS NOT NULL
                       AND to_regclass('public.instrument_type_id_rule') IS NOT NULL
                       AND to_regclass('public.security_type_rule') IS NOT NULL
@@ -105,7 +112,6 @@ async def test_create_equity_instrument_with_default_security_id(fastapi_client,
     symbol = f"AAPL_{uuid4().hex[:8]}"
     payload = {
         "instrument_type": "stock",
-        "symbol": symbol,
         "currency": "usd",
         "full_name": "Apple Inc.",
         "short_name": "Apple",
@@ -139,8 +145,8 @@ async def test_create_equity_instrument_with_default_security_id(fastapi_client,
                 text(
                     """
                     SELECT security_id, full_name, short_name, security_type
-                    FROM instrument_master
-                    WHERE instrument_id = :iid
+                    FROM instrument
+                    WHERE id = :iid
                     """
                 ),
                 {"iid": instrument_id},
@@ -173,7 +179,6 @@ async def test_create_instrument_requires_default_identifier(fastapi_client, db_
 
     payload = {
         "instrument_type": "stock",
-        "symbol": f"MSFT_{uuid4().hex[:8]}",
         "currency": "USD",
         "full_name": "Microsoft Corp.",
         "short_name": "Microsoft",
@@ -198,7 +203,6 @@ async def test_create_futures_instrument_with_subtype(fastapi_client, db_engine)
     sym = f"ES_{uuid4().hex[:6]}"
     payload = {
         "instrument_type": "futures",
-        "symbol": sym,
         "currency": "USD",
         "full_name": "E-mini S&P 500",
         "short_name": "ES",

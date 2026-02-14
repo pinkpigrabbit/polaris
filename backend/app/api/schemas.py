@@ -131,7 +131,6 @@ class InstrumentFixedIncomeAttributes(BaseModel):
 
 class CreateInstrumentRequest(BaseModel):
     instrument_type: str
-    symbol: str | None = None
     currency: str = Field(min_length=3, max_length=3)
     full_name: str
     short_name: str
@@ -148,7 +147,6 @@ class CreateInstrumentRequest(BaseModel):
 class InstrumentResponse(BaseModel):
     instrument_id: str
     instrument_type: str
-    symbol: str | None = None
     currency: str
     full_name: str
     short_name: str

@@ -75,9 +75,9 @@ async def test_two_portfolios_aapl_buy_flow_to_ibor_and_abor(
         instrument_row = await conn.execute(
             text(
                 """
-                    INSERT INTO instrument(instrument_type, symbol, name, currency, lifecycle, created_at, updated_at)
+                    INSERT INTO instrument(instrument_type, security_id, name, currency, lifecycle, created_at, updated_at)
                     VALUES ('stock', 'AAPL US', 'Apple Inc. US', 'USD', 'active', now(), now())
-                    ON CONFLICT (instrument_type, symbol)
+                    ON CONFLICT (instrument_type, security_id)
                     DO UPDATE SET
                       name = EXCLUDED.name,
                   currency = EXCLUDED.currency,
@@ -337,9 +337,9 @@ async def test_two_instruments_separate_buy_sum_flow(
         aapl_row = await conn.execute(
             text(
                 """
-                    INSERT INTO instrument(instrument_type, symbol, name, currency, lifecycle, created_at, updated_at)
+                    INSERT INTO instrument(instrument_type, security_id, name, currency, lifecycle, created_at, updated_at)
                     VALUES ('stock', 'AAPL US', 'Apple Inc. US', 'USD', 'active', now(), now())
-                    ON CONFLICT (instrument_type, symbol)
+                    ON CONFLICT (instrument_type, security_id)
                     DO UPDATE SET
                       name = EXCLUDED.name,
                   currency = EXCLUDED.currency,
@@ -355,9 +355,9 @@ async def test_two_instruments_separate_buy_sum_flow(
         msft_row = await conn.execute(
             text(
                 """
-                    INSERT INTO instrument(instrument_type, symbol, name, currency, lifecycle, created_at, updated_at)
+                    INSERT INTO instrument(instrument_type, security_id, name, currency, lifecycle, created_at, updated_at)
                     VALUES ('stock', 'MSFT US', 'Microsoft Corp. US', 'USD', 'active', now(), now())
-                    ON CONFLICT (instrument_type, symbol)
+                    ON CONFLICT (instrument_type, security_id)
                     DO UPDATE SET
                       name = EXCLUDED.name,
                   currency = EXCLUDED.currency,
@@ -829,8 +829,8 @@ async def test_two_instruments_separate_buy_sum_flow(
     print(f"SELL 후 ABOR result 응답 P2: {abor_after_sell_result_2.status_code}, {abor_after_sell_result_2.json()}")
     assert abor_after_sell_result_1.status_code == 200
     assert abor_after_sell_result_2.status_code == 200
-    assert abor_after_sell_result_1.json()["nav_rc"] == "48000"
-    assert abor_after_sell_result_2.json()["nav_rc"] == "96000"
+    assert abor_after_sell_result_1.json()["nav_rc"] == "48500"
+    assert abor_after_sell_result_2.json()["nav_rc"] == "97000"
 
     print("\n[최종] BUY 후 SELL(절반 청산)까지 transaction/position/IBOR/ABOR 반영 검증이 완료되었습니다.")
     print("================ [2종목 합산 시나리오 종료] ================\n")

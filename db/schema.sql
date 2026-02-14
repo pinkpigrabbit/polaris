@@ -46,6 +46,10 @@ CREATE TABLE IF NOT EXISTS currency (
   name TEXT -- 통화명
 );
 
+INSERT INTO currency(code, name)
+VALUES ('USD', 'US Dollar')
+ON CONFLICT (code) DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS data_source (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- PK
   name TEXT NOT NULL UNIQUE -- 데이터 소스명
@@ -63,16 +67,89 @@ CREATE TABLE IF NOT EXISTS portfolio (
 CREATE TABLE IF NOT EXISTS instrument (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, -- PK(정렬 가능한 순번 ID)
   instrument_type TEXT NOT NULL, -- 상품 타입(예: stock/bond/fx/cash)
-  symbol TEXT, -- 티커/심볼
+  security_id TEXT NOT NULL, -- 시스템 기준 종목ID(symbol 통합)
   name TEXT, -- 상품명
+  full_name TEXT, -- 종목 전체명
+  short_name TEXT, -- 종목 약칭
+  security_type TEXT, -- 보안유형(level2)
   currency CHAR(3) REFERENCES currency(code), -- 결제/기준 통화(선택)
   lifecycle row_lifecycle_status NOT NULL DEFAULT 'active', -- 활성/취소/삭제 상태
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 생성시각
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 수정시각
-  UNIQUE (instrument_type, symbol) -- 타입+심볼 중복 방지
+  UNIQUE (instrument_type, security_id), -- 타입+security_id 중복 방지
+  UNIQUE (security_id) -- security_id 전역 중복 방지
 );
 
--- 상품 식별자/마스터/룰(확장형)
+-- 기존 스키마(symbol + instrument_master)에서 단일 instrument 구조로 마이그레이션
+DO $$
+BEGIN
+  ALTER TABLE instrument ADD COLUMN IF NOT EXISTS security_id TEXT;
+  ALTER TABLE instrument ADD COLUMN IF NOT EXISTS full_name TEXT;
+  ALTER TABLE instrument ADD COLUMN IF NOT EXISTS short_name TEXT;
+  ALTER TABLE instrument ADD COLUMN IF NOT EXISTS security_type TEXT;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'instrument' AND column_name = 'symbol'
+  ) THEN
+    UPDATE instrument
+    SET security_id = symbol
+    WHERE security_id IS NULL AND symbol IS NOT NULL;
+  END IF;
+
+  IF to_regclass('public.instrument_master') IS NOT NULL THEN
+    UPDATE instrument i
+    SET
+      security_id = COALESCE(i.security_id, m.security_id),
+      full_name = COALESCE(i.full_name, m.full_name),
+      short_name = COALESCE(i.short_name, m.short_name),
+      security_type = COALESCE(i.security_type, m.security_type),
+      updated_at = GREATEST(i.updated_at, m.updated_at)
+    FROM instrument_master m
+    WHERE m.instrument_id = i.id;
+
+    DROP TABLE instrument_master;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'instrument' AND column_name = 'symbol'
+  ) THEN
+    UPDATE instrument
+    SET security_id = symbol
+    WHERE security_id IS NULL;
+  END IF;
+
+  ALTER TABLE instrument ALTER COLUMN security_id SET NOT NULL;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'instrument' AND column_name = 'symbol'
+  ) THEN
+    ALTER TABLE instrument DROP COLUMN symbol;
+  END IF;
+
+  ALTER TABLE instrument DROP CONSTRAINT IF EXISTS instrument_instrument_type_symbol_key;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'instrument_instrument_type_security_id_key'
+  ) THEN
+    ALTER TABLE instrument
+      ADD CONSTRAINT instrument_instrument_type_security_id_key UNIQUE (instrument_type, security_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'instrument_security_id_key'
+  ) THEN
+    ALTER TABLE instrument
+      ADD CONSTRAINT instrument_security_id_key UNIQUE (security_id);
+  END IF;
+END$$;
+
+-- 상품 식별자/룰(확장형)
 CREATE TABLE IF NOT EXISTS security_id_type (
   code TEXT PRIMARY KEY, -- 식별자 타입 코드(BBG_TICKER/ISIN/CUSIP/BBGID/USER_*)
   description TEXT, -- 식별자 타입 설명
@@ -98,16 +175,6 @@ CREATE TABLE IF NOT EXISTS security_type_rule (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 생성시각
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 수정시각
   PRIMARY KEY (security_type, currency)
-);
-
-CREATE TABLE IF NOT EXISTS instrument_master (
-  instrument_id BIGINT PRIMARY KEY REFERENCES instrument(id) ON DELETE CASCADE, -- instrument 기본키(FK)
-  security_id TEXT NOT NULL UNIQUE, -- 시스템 기준 종목ID(관리자 수정 가능)
-  full_name TEXT NOT NULL, -- 종목 전체명
-  short_name TEXT NOT NULL, -- 종목 약칭
-  security_type TEXT NOT NULL, -- 보안유형(level2)
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), -- 생성시각
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now() -- 수정시각
 );
 
 CREATE TABLE IF NOT EXISTS instrument_identifier (

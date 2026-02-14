@@ -208,8 +208,11 @@ instrument = Table(
     metadata,
     Column("id", BigInteger, primary_key=True),
     Column("instrument_type", Text, nullable=False),
-    Column("symbol", Text),
+    Column("security_id", Text, nullable=False),
     Column("name", Text),
+    Column("full_name", Text),
+    Column("short_name", Text),
+    Column("security_type", Text),
     Column("currency", CHAR(3)),
     Column("lifecycle", row_lifecycle_status_enum, nullable=False),
     Column("created_at", TIMESTAMP(timezone=True), nullable=False),
@@ -234,19 +237,6 @@ instrument_type_id_rule = Table(
     Column("instrument_type", Text, primary_key=True),
     Column("default_id_type_code", Text, nullable=False),
     Column("updated_by", Text),
-    Column("updated_at", TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
-)
-
-
-instrument_master = Table(
-    "instrument_master",
-    metadata,
-    Column("instrument_id", BigInteger, primary_key=True),
-    Column("security_id", Text, nullable=False),
-    Column("full_name", Text, nullable=False),
-    Column("short_name", Text, nullable=False),
-    Column("security_type", Text, nullable=False),
-    Column("created_at", TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
     Column("updated_at", TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")),
 )
 
